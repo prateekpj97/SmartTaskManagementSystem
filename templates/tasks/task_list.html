@@ -1,0 +1,146 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tasks - Smart Task Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-list-task"></i> My Tasks
+                <a href="{% url 'task_create' %}" class="btn btn-primary float-end">
+                    <i class="bi bi-plus-circle"></i> New Task
+                </a>
+            </h2>
+        </div>
+    </div>
+    
+    <!-- Filters -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-3">
+                            <input type="text" name="search" class="form-control" placeholder="Search tasks..." 
+                                   value="{{ search_query }}">
+                        </div>
+                        <div class="col-md-2">
+                            <select name="status" class="form-control">
+                                <option value="">All Status</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <select name="priority" class="form-control">
+                                <option value="">All Priorities</option>
+                                <option value="low" {% if priority_filter == 'low' %}selected{% endif %}>Low</option>
+                                <option value="medium" {% if priority_filter == 'medium' %}selected{% endif %}>Medium</option>
+                                <option value="high" {% if priority_filter == 'high' %}selected{% endif %}>High</option>
+                                <option value="urgent" {% if priority_filter == 'urgent' %}selected{% endif %}>Urgent</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select name="category" class="form-control">
+                                <option value="">All Categories</option>
+                                {% for category in categories %}
+                                <option value="{{ category.id }}" {% if category_filter == category.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ category.name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-search"></i> Filter
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tasks Table -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    {% if tasks %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Category</th>
+                                    <th>Priority</th>
+                                    <th>Status</th>
+                                    <th>Deadline</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for task in tasks %}
+                                <tr class="task-row" data-task-id="{{ task.id }}">
+                                    <td>
+                                        <a href="{% url 'task_detail' task.id %}">{{ task.title }}</a>
+                                    </td>
+                                    <td>
+                                        {% if task.category %}
+                                            <span class="badge" style="background-color: {{ task.category.color }}">
+                                                {{ task.category.name }}
+                                            </span>
+                                        {% else %}
+                                            <span class="text-muted">No category</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if task.priority == 'urgent' %}danger{% elif task.priority == 'high' %}warning{% elif task.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                            {{ task.get_priority_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <select class="form-select form-select-sm status-select" data-task-id="{{ task.id }}">
+                                            <option value="pending" {% if task.status == 'pending' %}selected{% endif %}>Pending</option>
+                                            <option value="in_progress" {% if task.status == 'in_progress' %}selected{% endif %}>In Progress</option>
+                                            <option value="completed" {% if task.status == 'completed' %}selected{% endif %}>Completed</option>
+                                            <option value="cancelled" {% if task.status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        {% if task.deadline %}
+                                            {{ task.deadline|date:"M d, Y H:i" }}
+                                            {% if task.is_overdue %}
+                                                <span class="badge bg-danger">Overdue</span>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="text-muted">No deadline</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'task_update' task.id %}" class="btn btn-sm btn-warning">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <a href="{% url 'task_delete' task.id %}" class="btn btn-sm btn-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-center text-muted">No tasks found. <a href="{% url 'task_create' %}">Create one now!</a></p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

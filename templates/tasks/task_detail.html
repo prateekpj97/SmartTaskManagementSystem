@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ task.title }} - Smart Task Management{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        <div class="col-md-10 offset-md-1">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-file-text"></i> Task Details</h2>
+                <div>
+                    <a href="{% url 'task_update' task.id %}" class="btn btn-warning">
+                        <i class="bi bi-pencil"></i> Edit
+                    </a>
+                    <a href="{% url 'task_delete' task.id %}" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete
+                    </a>
+                    <a href="{% url 'task_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Back
+                    </a>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <h3 class="card-title">{{ task.title }}</h3>
+                    
+                    <div class="row mt-4">
+                        <div class="col-md-6">
+                            <p><strong>Status:</strong> 
+                                <span class="badge bg-{% if task.status == 'completed' %}success{% elif task.status == 'in_progress' %}info{% elif task.status == 'cancelled' %}secondary{% else %}warning{% endif %}">
+                                    {{ task.get_status_display }}
+                                </span>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Priority:</strong> 
+                                <span class="badge bg-{% if task.priority == 'urgent' %}danger{% elif task.priority == 'high' %}warning{% elif task.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                    {{ task.get_priority_display }}
+                                </span>
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Category:</strong> 
+                                {% if task.category %}
+                                    <span class="badge" style="background-color: {{ task.category.color }}">
+                                        {{ task.category.name }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-muted">No category</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Created:</strong> {{ task.created_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Deadline:</strong> 
+                                {% if task.deadline %}
+                                    {{ task.deadline|date:"M d, Y H:i" }}
+                                    {% if task.is_overdue %}
+                                        <span class="badge bg-danger">Overdue</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">No deadline</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Last Updated:</strong> {{ task.updated_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                    
+                    {% if task.completed_at %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Completed At:</strong> {{ task.completed_at|date:"M d, Y H:i" }}</p>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <hr>
+                    
+                    <div class="mt-3">
+                        <h5>Description:</h5>
+                        {% if task.description %}
+                            <p class="text-muted">{{ task.description|linebreaks }}</p>
+                        {% else %}
+                            <p class="text-muted">No description provided.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,129 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Smart Task Management{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">
+                <i class="bi bi-speedometer2"></i> Dashboard
+                <a href="{% url 'task_create' %}" class="btn btn-primary float-end">
+                    <i class="bi bi-plus-circle"></i> New Task
+                </a>
+            </h2>
+        </div>
+    </div>
+    
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-list-task"></i> Total Tasks</h5>
+                    <h2>{{ stats.total_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-clock"></i> Pending</h5>
+                    <h2>{{ stats.pending_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-arrow-repeat"></i> In Progress</h5>
+                    <h2>{{ stats.in_progress_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-3 mb-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title"><i class="bi bi-check-circle"></i> Completed</h5>
+                    <h2>{{ stats.completed_tasks }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    {% if stats.overdue_tasks > 0 %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="alert alert-danger">
+                <i class="bi bi-exclamation-triangle"></i> 
+                You have <strong>{{ stats.overdue_tasks }}</strong> overdue task{{ stats.overdue_tasks|pluralize }}.
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Recent and Upcoming Tasks -->
+    <div class="row">
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Tasks</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_tasks %}
+                        <div class="list-group">
+                            {% for task in recent_tasks %}
+                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <small>
+                                        <span class="badge bg-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                                    </small>
+                                </div>
+                                <small class="text-muted">{{ task.created_at|date:"M d, Y" }}</small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No recent tasks.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Upcoming Deadlines</h5>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_tasks %}
+                        <div class="list-group">
+                            {% for task in upcoming_tasks %}
+                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ task.title }}</h6>
+                                    <small>
+                                        <span class="badge bg-{{ task.priority }}">{{ task.get_priority_display }}</span>
+                                    </small>
+                                </div>
+                                <small class="text-muted">
+                                    <i class="bi bi-calendar"></i> {{ task.deadline|date:"M d, Y H:i" }}
+                                </small>
+                            </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted">No upcoming deadlines.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,167 @@
+/* Custom styles for Smart Task Management System */
+
+:root {
+    --primary-color: #0d6efd;
+    --secondary-color: #6c757d;
+    --success-color: #198754;
+    --danger-color: #dc3545;
+    --warning-color: #ffc107;
+    --info-color: #0dcaf0;
+}
+
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+main {
+    flex: 1;
+}
+
+/* Navbar */
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+/* Cards */
+.card {
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Task status badges */
+.badge {
+    padding: 0.5em 0.75em;
+    font-size: 0.875rem;
+}
+
+.bg-low {
+    background-color: var(--secondary-color) !important;
+}
+
+.bg-medium {
+    background-color: var(--info-color) !important;
+}
+
+.bg-high {
+    background-color: var(--warning-color) !important;
+    color: #000 !important;
+}
+
+.bg-urgent {
+    background-color: var(--danger-color) !important;
+}
+
+/* Task table */
+.table-hover tbody tr:hover {
+    background-color: rgba(0,0,0,0.02);
+    cursor: pointer;
+}
+
+.task-row {
+    transition: background-color 0.2s;
+}
+
+/* Status select */
+.status-select {
+    width: auto;
+    min-width: 120px;
+}
+
+/* Forms */
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Buttons */
+.btn {
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+/* Dashboard statistics cards */
+.card.bg-primary,
+.card.bg-warning,
+.card.bg-info,
+.card.bg-success,
+.card.bg-danger {
+    border: none;
+}
+
+.card.bg-primary h2,
+.card.bg-warning h2,
+.card.bg-info h2,
+.card.bg-success h2,
+.card.bg-danger h2 {
+    font-size: 2.5rem;
+    font-weight: bold;
+}
+
+/* List group items */
+.list-group-item {
+    border-left: 4px solid transparent;
+    transition: border-color 0.2s;
+}
+
+.list-group-item:hover {
+    border-left-color: var(--primary-color);
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+    background-color: #f8f9fa;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    .card.bg-primary h2,
+    .card.bg-warning h2,
+    .card.bg-info h2,
+    .card.bg-success h2 {
+        font-size: 2rem;
+    }
+}
+
+/* Loading spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+    border-width: 0.15em;
+}
+
+/* Alert animations */
+.alert {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
