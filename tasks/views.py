@@ -12,7 +12,6 @@ from .forms import TaskForm, CategoryForm
 @login_required
 def dashboard(request):
     """Main dashboard view with task statistics"""
-    # Try to get statistics from cache
     cache_key = f'dashboard_stats_{request.user.id}'
     stats = cache.get(cache_key)
 
@@ -30,13 +29,10 @@ def dashboard(request):
                 status__in=['pending', 'in_progress']
             ).count(),
         }
-        # Cache for 2 minutes
         cache.set(cache_key, stats, 120)
 
-    # Get recent tasks
     recent_tasks = Task.objects.filter(user=request.user).order_by('-created_at')[:5]
 
-    # Get upcoming tasks
     upcoming_tasks = Task.objects.filter(
         user=request.user,
         deadline__gte=timezone.now(),
@@ -56,7 +52,6 @@ def task_list(request):
     """List all tasks with filtering options"""
     tasks = Task.objects.filter(user=request.user).select_related('category')
 
-    # Filtering
     status_filter = request.GET.get('status')
     priority_filter = request.GET.get('priority')
     category_filter = request.GET.get('category')
@@ -96,7 +91,6 @@ def task_create(request):
             task = form.save(commit=False)
             task.user = request.user
             task.save()
-            # Invalidate cache
             cache.delete(f'user_tasks_{request.user.id}')
             cache.delete(f'dashboard_stats_{request.user.id}')
             messages.success(request, 'Task created successfully!')
@@ -116,7 +110,6 @@ def task_update(request, pk):
         form = TaskForm(request.POST, instance=task, user=request.user)
         if form.is_valid():
             form.save()
-            # Invalidate cache
             cache.delete(f'user_tasks_{request.user.id}')
             cache.delete(f'dashboard_stats_{request.user.id}')
             messages.success(request, 'Task updated successfully!')
@@ -134,7 +127,6 @@ def task_delete(request, pk):
 
     if request.method == 'POST':
         task.delete()
-        # Invalidate cache
         cache.delete(f'user_tasks_{request.user.id}')
         cache.delete(f'dashboard_stats_{request.user.id}')
         messages.success(request, 'Task deleted successfully!')
@@ -164,7 +156,6 @@ def task_toggle_status(request, pk):
             else:
                 task.save()
 
-            # Invalidate cache
             cache.delete(f'user_tasks_{request.user.id}')
             cache.delete(f'dashboard_stats_{request.user.id}')
 

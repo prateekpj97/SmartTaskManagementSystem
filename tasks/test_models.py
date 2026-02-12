@@ -75,7 +75,7 @@ class TestTaskModel:
         """Test days_until_deadline calculation"""
         days = task.days_until_deadline()
         assert days is not None
-        assert days >= 6  # Should be around 7 days
+        assert days >= 6 
     
     def test_days_until_deadline_no_deadline(self, user):
         """Test days_until_deadline with no deadline"""
@@ -119,6 +119,6 @@ class TestTaskModel:
         task2 = Task.objects.create(title='Task 2', user=user, priority='low', status='pending')
         
         tasks = Task.objects.all()
-        assert tasks[0] == task2  # Most recent first
+        assert tasks[0] == task2
         assert tasks[1] == task1
 

@@ -11,7 +11,7 @@ class TestDashboardView:
     def test_dashboard_requires_login(self, client):
         """Test dashboard requires authentication"""
         response = client.get(reverse('dashboard'))
-        assert response.status_code == 302  # Redirect to login
+        assert response.status_code == 302
     
     def test_dashboard_authenticated(self, client, user):
         """Test dashboard with authenticated user"""
@@ -83,7 +83,7 @@ class TestTaskCreateView:
             'category': category.id,
         }
         response = client.post(reverse('task_create'), data)
-        assert response.status_code == 302  # Redirect after success
+        assert response.status_code == 302
         assert Task.objects.filter(title='New Test Task').exists()
 
 

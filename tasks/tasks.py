@@ -15,7 +15,6 @@ def send_deadline_reminders():
     now = timezone.now()
     tomorrow = now + timedelta(hours=24)
     
-    # Get tasks with deadlines in the next 24 hours that haven't been reminded
     upcoming_tasks = Task.objects.filter(
         deadline__gte=now,
         deadline__lte=tomorrow,
@@ -75,7 +74,6 @@ def send_daily_task_summary():
         if not user.email:
             continue
         
-        # Get user's task statistics
         pending_tasks = user.tasks.filter(status='pending').count()
         in_progress_tasks = user.tasks.filter(status='in_progress').count()
         completed_today = user.tasks.filter(
@@ -87,7 +85,6 @@ def send_daily_task_summary():
             status__in=['pending', 'in_progress']
         ).count()
         
-        # Only send if user has active tasks
         if pending_tasks + in_progress_tasks + overdue_tasks == 0:
             continue
         
@@ -97,20 +94,19 @@ Hello {user.get_full_name() or user.username},
 
 Here's your daily task summary:
 
-📋 Pending Tasks: {pending_tasks}
-🔄 In Progress: {in_progress_tasks}
-✅ Completed Today: {completed_today}
-⚠️ Overdue Tasks: {overdue_tasks}
+Pending Tasks: {pending_tasks}
+In Progress: {in_progress_tasks}
+Completed Today: {completed_today}
+Overdue Tasks: {overdue_tasks}
 
 """
         
-        # Add overdue task details if any
         if overdue_tasks > 0:
             message += "\nOverdue Tasks:\n"
             overdue_task_list = user.tasks.filter(
                 deadline__lt=timezone.now(),
                 status__in=['pending', 'in_progress']
-            )[:5]  # Limit to 5 tasks
+            )[:5]
             
             for task in overdue_task_list:
                 message += f"- {task.title} (Due: {task.deadline.strftime('%Y-%m-%d')})\n"

@@ -25,7 +25,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
-        # Invalidate cache
         cache.delete(f'user_categories_{self.request.user.id}')
 
 
@@ -46,33 +45,26 @@ class TaskViewSet(viewsets.ModelViewSet):
         return TaskSerializer
     
     def get_queryset(self):
-        # Try to get from cache first
         cache_key = f'user_tasks_{self.request.user.id}'
         cached_tasks = cache.get(cache_key)
         
         if cached_tasks is None:
             queryset = Task.objects.filter(user=self.request.user).select_related('category', 'user')
-            # Cache for 5 minutes
             cache.set(cache_key, list(queryset.values_list('id', flat=True)), 300)
         
         return Task.objects.filter(user=self.request.user).select_related('category', 'user')
     
     def perform_create(self, serializer):
         task = serializer.save(user=self.request.user)
-        # Invalidate cache
         cache.delete(f'user_tasks_{self.request.user.id}')
-        # Send notification asynchronously
         send_task_notification.delay(task.id, 'created')
     
     def perform_update(self, serializer):
         task = serializer.save()
-        # Invalidate cache
         cache.delete(f'user_tasks_{self.request.user.id}')
-        # Send notification asynchronously
         send_task_notification.delay(task.id, 'updated')
     
     def perform_destroy(self, instance):
-        # Invalidate cache
         cache.delete(f'user_tasks_{self.request.user.id}')
         instance.delete()
     
@@ -81,9 +73,7 @@ class TaskViewSet(viewsets.ModelViewSet):
         """Mark a task as completed"""
         task = self.get_object()
         task.mark_as_completed()
-        # Invalidate cache
         cache.delete(f'user_tasks_{request.user.id}')
-        # Send notification
         send_task_notification.delay(task.id, 'completed')
         serializer = self.get_serializer(task)
         return Response(serializer.data)
@@ -109,7 +99,6 @@ class TaskViewSet(viewsets.ModelViewSet):
                 'high_priority': tasks.filter(priority='high').count(),
                 'urgent_priority': tasks.filter(priority='urgent').count(),
             }
-            # Cache for 2 minutes
             cache.set(cache_key, stats, 120)
         
         return Response(stats)
