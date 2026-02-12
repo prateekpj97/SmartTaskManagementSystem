@@ -23,14 +23,33 @@ A comprehensive task management web application built with Django, featuring asy
 - **Cache**: Redis
 - **Frontend**: Bootstrap 5, jQuery
 - **Testing**: Pytest
+- **Deployment**: Docker & Docker Compose
 
-## Prerequisites
+## Quick Start with Docker (Recommended)
+
+The easiest way to run the application is using Docker:
+
+```bash
+# Build and start all services
+docker-compose up --build
+
+# Access the application at http://localhost:8000
+# Login with: admin / admin123
+```
+
+That's it! Docker will automatically set up PostgreSQL, Redis, Django, and Celery workers.
+
+For detailed Docker instructions, see [DOCKER_README.md](DOCKER_README.md)
+
+## Manual Installation (Without Docker)
+
+### Prerequisites
 
 - Python 3.8+
 - PostgreSQL
 - Redis Server
 
-## Installation
+### Installation Steps
 
 ### 1. Clone the repository
 
@@ -202,8 +221,54 @@ SmartTaskManagementSystem/
 │   └── tests/               # Test files
 ├── templates/               # HTML templates
 ├── static/                  # Static files (CSS, JS)
-└── requirements.txt         # Python dependencies
+├── Dockerfile               # Docker image configuration
+├── docker-compose.yml       # Docker services orchestration
+├── docker-entrypoint.sh     # Docker startup script
+├── requirements.txt         # Python dependencies
+├── README.md                # This file
+└── DOCKER_README.md         # Docker deployment guide
 ```
+
+## Deployment
+
+### Docker Deployment (Recommended)
+
+See [DOCKER_README.md](DOCKER_README.md) for complete Docker deployment instructions.
+
+**Quick commands:**
+```bash
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop all services
+docker-compose down
+
+# Access Django shell
+docker-compose exec web python manage.py shell
+```
+
+### Production Deployment
+
+For production deployment:
+1. Set `DEBUG=False` in environment variables
+2. Use strong `SECRET_KEY`
+3. Configure proper `ALLOWED_HOSTS`
+4. Set up SSL/TLS certificates
+5. Use a reverse proxy (nginx/Apache)
+6. Configure production email backend
+7. Set up automated backups for PostgreSQL
+8. Use environment-specific docker-compose files
+
+## Default Credentials
+
+**Superuser (created automatically in Docker):**
+- Username: `admin`
+- Password: `admin123`
+
+⚠️ **Important:** Change the default password in production!
 
 ## License
 
