@@ -16,28 +16,37 @@ def dashboard(request):
     stats = cache.get(cache_key)
 
     if stats is None:
-        tasks = Task.objects.filter(user=request.user)
         now = timezone.now()
+        # Optimized: Use single query with aggregation instead of multiple count() queries
+        from django.db.models import Count, Q
 
-        stats = {
-            'total_tasks': tasks.count(),
-            'pending_tasks': tasks.filter(status='pending').count(),
-            'in_progress_tasks': tasks.filter(status='in_progress').count(),
-            'completed_tasks': tasks.filter(status='completed').count(),
-            'overdue_tasks': tasks.filter(
+        task_stats = Task.objects.filter(user=request.user).aggregate(
+            total_tasks=Count('id'),
+            pending_tasks=Count('id', filter=Q(status='pending')),
+            in_progress_tasks=Count('id', filter=Q(status='in_progress')),
+            completed_tasks=Count('id', filter=Q(status='completed')),
+            overdue_tasks=Count('id', filter=Q(
                 deadline__lt=now,
                 status__in=['pending', 'in_progress']
-            ).count(),
-        }
-        cache.set(cache_key, stats, 120)
+            ))
+        )
 
-    recent_tasks = Task.objects.filter(user=request.user).order_by('-created_at')[:5]
+        stats = task_stats
+        cache.set(cache_key, stats, 300)  # Increased cache time to 5 minutes
+
+    # Optimized: Use select_related to prevent N+1 queries
+    recent_tasks = Task.objects.filter(user=request.user)\
+        .select_related('category')\
+        .only('id', 'title', 'priority', 'created_at', 'category__name', 'category__color')\
+        .order_by('-created_at')[:5]
 
     upcoming_tasks = Task.objects.filter(
         user=request.user,
         deadline__gte=timezone.now(),
         status__in=['pending', 'in_progress']
-    ).order_by('deadline')[:5]
+    ).select_related('category')\
+     .only('id', 'title', 'priority', 'deadline', 'category__name', 'category__color')\
+     .order_by('deadline')[:5]
 
     context = {
         'stats': stats,
@@ -50,26 +59,38 @@ def dashboard(request):
 @login_required
 def task_list(request):
     """List all tasks with filtering options"""
-    tasks = Task.objects.filter(user=request.user).select_related('category')
+    # Optimized: Use select_related and only() to reduce query size
+    tasks = Task.objects.filter(user=request.user)\
+        .select_related('category')\
+        .only(
+            'id', 'title', 'priority', 'status', 'deadline',
+            'category__id', 'category__name', 'category__color'
+        )
 
     status_filter = request.GET.get('status')
     priority_filter = request.GET.get('priority')
     category_filter = request.GET.get('category')
     search_query = request.GET.get('search')
 
+    # Build filters dynamically for better performance
+    filters = Q()
     if status_filter:
-        tasks = tasks.filter(status=status_filter)
+        filters &= Q(status=status_filter)
     if priority_filter:
-        tasks = tasks.filter(priority=priority_filter)
+        filters &= Q(priority=priority_filter)
     if category_filter:
-        tasks = tasks.filter(category_id=category_filter)
+        filters &= Q(category_id=category_filter)
     if search_query:
-        tasks = tasks.filter(
-            Q(title__icontains=search_query) |
-            Q(description__icontains=search_query)
-        )
+        filters &= Q(title__icontains=search_query) | Q(description__icontains=search_query)
 
-    categories = Category.objects.filter(user=request.user)
+    if filters:
+        tasks = tasks.filter(filters)
+
+    # Order by deadline (overdue first), then priority
+    tasks = tasks.order_by('deadline', '-priority')
+
+    # Optimized: Only fetch necessary category fields
+    categories = Category.objects.filter(user=request.user).only('id', 'name')
 
     context = {
         'tasks': tasks,
@@ -138,7 +159,12 @@ def task_delete(request, pk):
 @login_required
 def task_detail(request, pk):
     """View task details"""
-    task = get_object_or_404(Task, pk=pk, user=request.user)
+    # Optimized: Use select_related to prevent additional query for category
+    task = get_object_or_404(
+        Task.objects.select_related('category', 'user'),
+        pk=pk,
+        user=request.user
+    )
     return render(request, 'tasks/task_detail.html', {'task': task})
 
 

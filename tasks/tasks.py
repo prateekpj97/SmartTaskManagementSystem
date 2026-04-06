@@ -11,22 +11,34 @@ from django.conf import settings
 def send_deadline_reminders():
     """
     Send email reminders for tasks with upcoming deadlines (within 24 hours)
+    Optimized with bulk operations and better error handling
     """
     now = timezone.now()
     tomorrow = now + timedelta(hours=24)
-    
+
+    # Optimized: Prefetch user profile in single query
     upcoming_tasks = Task.objects.filter(
         deadline__gte=now,
         deadline__lte=tomorrow,
         status__in=['pending', 'in_progress'],
         reminder_sent=False
-    ).select_related('user', 'category')
-    
+    ).select_related('user__profile', 'category').only(
+        'id', 'title', 'priority', 'deadline', 'description', 'reminder_sent',
+        'user__id', 'user__email', 'user__first_name', 'user__last_name', 'user__username',
+        'user__profile__email_notifications',
+        'category__name'
+    )
+
+    tasks_to_update = []
     sent_count = 0
+    failed_emails = []
+
     for task in upcoming_tasks:
-        if task.user.profile.email_notifications and task.user.email:
-            subject = f'Reminder: Task "{task.title}" deadline approaching'
-            message = f"""
+        if not (task.user.profile.email_notifications and task.user.email):
+            continue
+
+        subject = f'Reminder: Task "{task.title}" deadline approaching'
+        message = f"""
 Hello {task.user.get_full_name() or task.user.username},
 This is a reminder that your task is due soon:
 
@@ -42,81 +54,104 @@ Please complete this task before the deadline.
 
 Best regards,
 Smart Task Management System
-            """
-            
-            try:
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [task.user.email],
-                    fail_silently=False,
-                )
-                task.reminder_sent = True
-                task.save()
-                sent_count += 1
-            except Exception as e:
-                print(f"Failed to send email to {task.user.email}: {str(e)}")
-    
-    return f"Sent {sent_count} deadline reminders"
+        """
+
+        try:
+            send_mail(
+                subject,
+                message,
+                settings.DEFAULT_FROM_EMAIL,
+                [task.user.email],
+                fail_silently=False,
+            )
+            task.reminder_sent = True
+            tasks_to_update.append(task)
+            sent_count += 1
+        except Exception as e:
+            failed_emails.append(f"{task.user.email}: {str(e)}")
+
+    # Optimized: Bulk update instead of individual saves
+    if tasks_to_update:
+        Task.objects.bulk_update(tasks_to_update, ['reminder_sent'])
+
+    result = f"Sent {sent_count} deadline reminders"
+    if failed_emails:
+        result += f". Failed: {len(failed_emails)}"
+
+    return result
 
 
 @shared_task
 def send_daily_task_summary():
     """
     Send daily task summary to all users with email notifications enabled
+    Optimized with aggregation and bulk queries
     """
-    users = User.objects.filter(profile__email_notifications=True).prefetch_related('tasks')
-    
+    from django.db.models import Count, Q
+
+    # Optimized: Get users with aggregated stats in one query
+    now = timezone.now()
+    today = now.date()
+
+    users = User.objects.filter(
+        profile__email_notifications=True,
+        email__isnull=False
+    ).exclude(email='').select_related('profile')
+
     sent_count = 0
+    failed_count = 0
+
     for user in users:
-        if not user.email:
+        # Optimized: Use aggregate to get all counts in single query
+        stats = Task.objects.filter(user=user).aggregate(
+            pending=Count('id', filter=Q(status='pending')),
+            in_progress=Count('id', filter=Q(status='in_progress')),
+            completed_today=Count('id', filter=Q(
+                status='completed',
+                completed_at__date=today
+            )),
+            overdue=Count('id', filter=Q(
+                deadline__lt=now,
+                status__in=['pending', 'in_progress']
+            ))
+        )
+
+        # Skip if no active tasks
+        if stats['pending'] + stats['in_progress'] + stats['overdue'] == 0:
             continue
-        
-        pending_tasks = user.tasks.filter(status='pending').count()
-        in_progress_tasks = user.tasks.filter(status='in_progress').count()
-        completed_today = user.tasks.filter(
-            status='completed',
-            completed_at__date=timezone.now().date()
-        ).count()
-        overdue_tasks = user.tasks.filter(
-            deadline__lt=timezone.now(),
-            status__in=['pending', 'in_progress']
-        ).count()
-        
-        if pending_tasks + in_progress_tasks + overdue_tasks == 0:
-            continue
-        
+
         subject = 'Daily Task Summary'
         message = f"""
 Hello {user.get_full_name() or user.username},
 
 Here's your daily task summary:
 
-Pending Tasks: {pending_tasks}
-In Progress: {in_progress_tasks}
-Completed Today: {completed_today}
-Overdue Tasks: {overdue_tasks}
+Pending Tasks: {stats['pending']}
+In Progress: {stats['in_progress']}
+Completed Today: {stats['completed_today']}
+Overdue Tasks: {stats['overdue']}
 
 """
-        
-        if overdue_tasks > 0:
+
+        if stats['overdue'] > 0:
             message += "\nOverdue Tasks:\n"
-            overdue_task_list = user.tasks.filter(
-                deadline__lt=timezone.now(),
+            # Optimized: Only fetch required fields
+            overdue_tasks = Task.objects.filter(
+                user=user,
+                deadline__lt=now,
                 status__in=['pending', 'in_progress']
-            )[:5]
-            
-            for task in overdue_task_list:
+            ).only('title', 'deadline').order_by('deadline')[:5]
+
+            for task in overdue_tasks:
                 message += f"- {task.title} (Due: {task.deadline.strftime('%Y-%m-%d')})\n"
-        
+
         message += """
 Keep up the good work!
 
 Best regards,
 Smart Task Management System
         """
-        
+
         try:
             send_mail(
                 subject,
@@ -127,9 +162,9 @@ Smart Task Management System
             )
             sent_count += 1
         except Exception as e:
-            print(f"Failed to send email to {user.email}: {str(e)}")
-    
-    return f"Sent {sent_count} daily summaries"
+            failed_count += 1
+
+    return f"Sent {sent_count} daily summaries. Failed: {failed_count}"
 
 
 @shared_task
