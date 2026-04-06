@@ -4,119 +4,162 @@
 {% block title %}Dashboard - Smart Task Management{% endblock %}
 
 {% block content %}
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h2 class="mb-4">
-                <i class="bi bi-speedometer2"></i> Dashboard
-                <a href="{% url 'task_create' %}" class="btn btn-primary float-end">
-                    <i class="bi bi-plus-circle"></i> New Task
-                </a>
-            </h2>
-        </div>
-    </div>
-    
+<div class="container-fluid px-4 py-4">
     <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-list-task"></i> Total Tasks</h5>
-                    <h2>{{ stats.total_tasks }}</h2>
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center flex-wrap">
+                <div class="mb-3 mb-md-0">
+                    <h2 class="mb-1">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </h2>
+                    <p class="text-muted mb-0">Welcome back! Here's an overview of your tasks.</p>
+                </div>
+                <a href="{% url 'task_create' %}" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create New Task
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-4 mb-5">
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card bg-primary text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-list-task me-2"></i>Total Tasks
+                        </h5>
+                    </div>
+                    <h2 class="mb-0">{{ stats.total_tasks }}</h2>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card bg-warning text-white">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-clock"></i> Pending</h5>
-                    <h2>{{ stats.pending_tasks }}</h2>
+
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card bg-warning text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock me-2"></i>Pending
+                        </h5>
+                    </div>
+                    <h2 class="mb-0">{{ stats.pending_tasks }}</h2>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card bg-info text-white">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-arrow-repeat"></i> In Progress</h5>
-                    <h2>{{ stats.in_progress_tasks }}</h2>
+
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card bg-info text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-arrow-repeat me-2"></i>In Progress
+                        </h5>
+                    </div>
+                    <h2 class="mb-0">{{ stats.in_progress_tasks }}</h2>
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-3 mb-3">
-            <div class="card bg-success text-white">
-                <div class="card-body">
-                    <h5 class="card-title"><i class="bi bi-check-circle"></i> Completed</h5>
-                    <h2>{{ stats.completed_tasks }}</h2>
+
+        <div class="col-12 col-sm-6 col-lg-3">
+            <div class="card bg-success text-white h-100">
+                <div class="card-body d-flex flex-column justify-content-between">
+                    <div class="d-flex justify-content-between align-items-start mb-3">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-check-circle me-2"></i>Completed
+                        </h5>
+                    </div>
+                    <h2 class="mb-0">{{ stats.completed_tasks }}</h2>
                 </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Overdue Alert -->
     {% if stats.overdue_tasks > 0 %}
     <div class="row mb-4">
         <div class="col-12">
-            <div class="alert alert-danger">
-                <i class="bi bi-exclamation-triangle"></i> 
-                You have <strong>{{ stats.overdue_tasks }}</strong> overdue task{{ stats.overdue_tasks|pluralize }}.
+            <div class="alert alert-danger d-flex align-items-center" role="alert">
+                <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+                <div>
+                    <strong>Attention!</strong> You have <strong>{{ stats.overdue_tasks }}</strong> overdue task{{ stats.overdue_tasks|pluralize }}.
+                    <a href="{% url 'task_list' %}?overdue=true" class="alert-link ms-2">View now →</a>
+                </div>
             </div>
         </div>
     </div>
     {% endif %}
-    
-    <div class="row">
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-primary text-white">
-                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Recent Tasks</h5>
+
+    <!-- Recent Tasks & Upcoming Deadlines -->
+    <div class="row g-4">
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white d-flex align-items-center">
+                    <i class="bi bi-clock-history fs-5 me-2"></i>
+                    <h5 class="mb-0">Recent Tasks</h5>
                 </div>
                 <div class="card-body">
                     {% if recent_tasks %}
-                        <div class="list-group">
+                        <div class="list-group list-group-flush">
                             {% for task in recent_tasks %}
-                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">{{ task.title }}</h6>
-                                    <small>
-                                        <span class="badge bg-{{ task.priority }}">{{ task.get_priority_display }}</span>
-                                    </small>
+                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action border-0">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-2">{{ task.title }}</h6>
+                                        <small class="text-muted d-flex align-items-center">
+                                            <i class="bi bi-calendar3 me-1"></i>
+                                            {{ task.created_at|date:"M d, Y" }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-{{ task.priority }} ms-2">
+                                        {{ task.get_priority_display }}
+                                    </span>
                                 </div>
-                                <small class="text-muted">{{ task.created_at|date:"M d, Y" }}</small>
                             </a>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="text-muted">No recent tasks.</p>
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+                            <p class="mb-0">No recent tasks</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>
         </div>
-        
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-header bg-warning text-white">
-                    <h5 class="mb-0"><i class="bi bi-calendar-event"></i> Upcoming Deadlines</h5>
+
+        <div class="col-12 col-lg-6">
+            <div class="card h-100">
+                <div class="card-header bg-warning text-white d-flex align-items-center">
+                    <i class="bi bi-calendar-event fs-5 me-2"></i>
+                    <h5 class="mb-0">Upcoming Deadlines</h5>
                 </div>
                 <div class="card-body">
                     {% if upcoming_tasks %}
-                        <div class="list-group">
+                        <div class="list-group list-group-flush">
                             {% for task in upcoming_tasks %}
-                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action">
-                                <div class="d-flex w-100 justify-content-between">
-                                    <h6 class="mb-1">{{ task.title }}</h6>
-                                    <small>
-                                        <span class="badge bg-{{ task.priority }}">{{ task.get_priority_display }}</span>
-                                    </small>
+                            <a href="{% url 'task_detail' task.id %}" class="list-group-item list-group-item-action border-0">
+                                <div class="d-flex w-100 justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-2">{{ task.title }}</h6>
+                                        <small class="text-muted d-flex align-items-center">
+                                            <i class="bi bi-calendar-check me-1"></i>
+                                            {{ task.deadline|date:"M d, Y H:i" }}
+                                        </small>
+                                    </div>
+                                    <span class="badge bg-{{ task.priority }} ms-2">
+                                        {{ task.get_priority_display }}
+                                    </span>
                                 </div>
-                                <small class="text-muted">
-                                    <i class="bi bi-calendar"></i> {{ task.deadline|date:"M d, Y H:i" }}
-                                </small>
                             </a>
                             {% endfor %}
                         </div>
                     {% else %}
-                        <p class="text-muted">No upcoming deadlines.</p>
+                        <div class="empty-state">
+                            <i class="bi bi-calendar-x"></i>
+                            <p class="mb-0">No upcoming deadlines</p>
+                        </div>
                     {% endif %}
                 </div>
             </div>

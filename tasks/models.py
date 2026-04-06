@@ -21,7 +21,7 @@ class Category(models.Model):
 
 
 class Task(models.Model):
-    """Task model for managing user tasks"""
+    """Task model for managing user tasks - Optimized with better indexes"""
 
     PRIORITY_CHOICES = [
         ('low', 'Low'),
@@ -37,44 +37,80 @@ class Task(models.Model):
         ('cancelled', 'Cancelled'),
     ]
 
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=200, db_index=True)
     description = models.TextField(blank=True)
-    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium')
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES, default='medium', db_index=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending', db_index=True)
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True, related_name='tasks')
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks')
-    deadline = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
-    reminder_sent = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tasks', db_index=True)
+    deadline = models.DateTimeField(null=True, blank=True, db_index=True)
+    completed_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    reminder_sent = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         ordering = ['-created_at']
         indexes = [
-            models.Index(fields=['user', 'status']),
-            models.Index(fields=['deadline']),
-            models.Index(fields=['priority']),
+            # Composite indexes for common query patterns
+            models.Index(fields=['user', 'status', 'deadline']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['user', 'priority', 'status']),
+            models.Index(fields=['deadline', 'status', 'reminder_sent']),
+            models.Index(fields=['status', 'completed_at']),
+            # Text search optimization
+            models.Index(fields=['title', 'user']),
+        ]
+        # Add database-level constraints for data integrity
+        constraints = [
+            models.CheckConstraint(
+                check=Q(status__in=['pending', 'in_progress', 'completed', 'cancelled']),
+                name='valid_status'
+            ),
+            models.CheckConstraint(
+                check=Q(priority__in=['low', 'medium', 'high', 'urgent']),
+                name='valid_priority'
+            ),
         ]
 
     def __str__(self):
         return self.title
 
     def mark_as_completed(self):
-        """Mark task as completed"""
+        """Mark task as completed - Optimized to only update necessary fields"""
         self.status = 'completed'
         self.completed_at = timezone.now()
-        self.save()
+        # Only update specific fields to reduce database load
+        self.save(update_fields=['status', 'completed_at', 'updated_at'])
 
+    @property
     def is_overdue(self):
-        """Check if task is overdue"""
-        if self.deadline and self.status != 'completed':
+        """Check if task is overdue - Using property for better performance"""
+        if self.deadline and self.status not in ['completed', 'cancelled']:
             return timezone.now() > self.deadline
         return False
 
+    @property
     def days_until_deadline(self):
-        """Calculate days until deadline"""
+        """Calculate days until deadline - Using property for consistency"""
         if self.deadline:
             delta = self.deadline - timezone.now()
             return delta.days
         return None
+
+    @classmethod
+    def get_active_tasks(cls, user):
+        """Get all active tasks for a user - Optimized query method"""
+        return cls.objects.filter(
+            user=user,
+            status__in=['pending', 'in_progress']
+        ).select_related('category').order_by('deadline', '-priority')
+
+    @classmethod
+    def get_overdue_tasks(cls, user):
+        """Get overdue tasks for a user - Optimized query method"""
+        return cls.objects.filter(
+            user=user,
+            deadline__lt=timezone.now(),
+            status__in=['pending', 'in_progress']
+        ).select_related('category').order_by('deadline')

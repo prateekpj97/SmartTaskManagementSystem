@@ -75,6 +75,15 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
+            # Template optimization
+            'loaders': [
+                ('django.template.loaders.cached.Loader', [
+                    'django.template.loaders.filesystem.Loader',
+                    'django.template.loaders.app_directories.Loader',
+                ]) if not DEBUG else
+                'django.template.loaders.filesystem.Loader',
+                'django.template.loaders.app_directories.Loader',
+            ] if not DEBUG else None,
         },
     },
 ]
@@ -85,7 +94,7 @@ WSGI_APPLICATION = 'smart_task_management.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# PostgreSQL configuration
+# PostgreSQL configuration - Optimized with connection pooling
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -94,6 +103,12 @@ DATABASES = {
         'PASSWORD': config('DB_PASSWORD', default='password'),
         'HOST': config('DB_HOST', default='localhost'),
         'PORT': config('DB_PORT', default='5432'),
+        # Performance optimizations
+        'CONN_MAX_AGE': 600,  # Connection pooling - keep connections for 10 minutes
+        'OPTIONS': {
+            'connect_timeout': 10,
+            'options': '-c statement_timeout=30000'  # 30 second query timeout
+        },
     }
 }
 
@@ -149,7 +164,7 @@ LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
-# Django REST Framework
+# Django REST Framework - Optimized with throttling and caching
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
@@ -158,23 +173,43 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 10,
+    'PAGE_SIZE': 20,  # Increased from 10 for better performance
+    # Performance optimizations
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle'
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',
+        'user': '1000/hour'
+    },
+    'DEFAULT_RENDERER_CLASSES': [
+        'rest_framework.renderers.JSONRenderer',
+    ],
 }
 
-# Redis Cache Configuration
+# Redis Cache Configuration - Optimized with connection pooling
 CACHES = {
     'default': {
         'BACKEND': 'django_redis.cache.RedisCache',
         'LOCATION': f"redis://{config('REDIS_HOST', default='localhost')}:{config('REDIS_PORT', default='6379')}/1",
         'OPTIONS': {
             'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'CONNECTION_POOL_KWARGS': {
+                'max_connections': 50,
+                'retry_on_timeout': True,
+            },
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'COMPRESSOR': 'django_redis.compressors.zlib.ZlibCompressor',
+            'IGNORE_EXCEPTIONS': True,  # Don't fail if Redis is down
         },
         'KEY_PREFIX': 'smart_task',
         'TIMEOUT': 300,  # 5 minutes default timeout
     }
 }
 
-# Celery Configuration
+# Celery Configuration - Optimized for better performance
 CELERY_BROKER_URL = config('CELERY_BROKER_URL', default='redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = config('CELERY_RESULT_BACKEND', default='redis://localhost:6379/0')
 CELERY_ACCEPT_CONTENT = ['json']
@@ -182,6 +217,17 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
+# Celery Performance Optimizations
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+CELERY_BROKER_POOL_LIMIT = 10
+CELERY_TASK_ACKS_LATE = True  # Task acknowledged after completion
+CELERY_WORKER_PREFETCH_MULTIPLIER = 4  # How many tasks to prefetch
+CELERY_TASK_TIME_LIMIT = 300  # 5 minutes hard time limit
+CELERY_TASK_SOFT_TIME_LIMIT = 240  # 4 minutes soft time limit
+CELERY_RESULT_EXPIRES = 3600  # Results expire after 1 hour
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000  # Restart worker after 1000 tasks
+CELERY_TASK_COMPRESSION = 'gzip'  # Compress task data
 
 # Email Configuration
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
@@ -281,3 +327,38 @@ LOGGING = {
 # Create logs directory if it doesn't exist
 import os
 os.makedirs(BASE_DIR / 'logs', exist_ok=True)
+
+# ========== PERFORMANCE OPTIMIZATIONS ==========
+
+# Session optimization - Use Redis for sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+SESSION_COOKIE_AGE = 86400  # 1 day
+SESSION_SAVE_EVERY_REQUEST = False  # Only save when modified
+
+# Database query optimization
+# Show slow queries in development
+if DEBUG:
+    LOGGING['loggers']['django.db.backends'] = {
+        'level': 'DEBUG',
+        'handlers': ['console'],
+    }
+
+# Static files optimization
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+]
+
+# Disable timezone conversion for better performance if not needed
+USE_TZ = True
+
+# Data upload optimization
+DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
+
+# Security headers (improves caching)
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+
+# ========== END PERFORMANCE OPTIMIZATIONS ==========
