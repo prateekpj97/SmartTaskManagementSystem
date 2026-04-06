@@ -39,6 +39,8 @@ db.sqlite3-journal
 # Environment variables
 .env
 .env.local
+.env.production
+.env.production.local
 
 # IDE
 .vscode/
@@ -65,3 +67,15 @@ celerybeat.pid
 # Redis
 dump.rdb
 
+# Production files
+certbot/
+backups/
+logs/
+*.pem
+*.key
+*.crt
+*.csr
+
+# Docker volumes
+postgres_data/
+redis_data/
