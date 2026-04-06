@@ -28,7 +28,6 @@ def send_deadline_reminders():
             subject = f'Reminder: Task "{task.title}" deadline approaching'
             message = f"""
 Hello {task.user.get_full_name() or task.user.username},
-
 This is a reminder that your task is due soon:
 
 Task: {task.title}
